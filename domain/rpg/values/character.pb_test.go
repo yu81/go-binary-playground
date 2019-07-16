@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"testing"
 	"time"
 
 	"encoding/gob"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/assert"
 )
-import "github.com/stretchr/testify/assert"
 
 func generateKilledMonsters(n int) []*KilledMonsters {
 	result := make([]*KilledMonsters, 0, n)
@@ -59,51 +60,39 @@ func testCharacterDataStructRandomKilledMonsters(n int) Character {
 	return c
 }
 
-func TestCharacter_XXX_Marshal(t *testing.T) {
+func TestCharacter_Marshal(t *testing.T) {
 	c := testCharacterDataStruct()
 	fmt.Println(c)
-	var buf []byte
-	serialized, err := c.XXX_Marshal(buf, false)
-	fmt.Println(buf)
-	fmt.Println(serialized)
+	serialized, err := proto.Marshal(&c)
 	assert.NoError(t, err)
 	cc := new(Character)
-	fmt.Println(serialized)
-	err = cc.XXX_Unmarshal(serialized)
+	err = proto.Unmarshal(serialized, cc)
 	assert.NoError(t, err)
-	assert.True(t, reflect.DeepEqual(c, cc))
 }
 
 func TestCharacter_XXX_Unmarshal(t *testing.T) {
 	c := testCharacterDataStructRandomKilledMonsters(10)
-	var buf []byte
-	serialized, _ := c.XXX_Marshal(buf, false)
+	serialized, _ := proto.Marshal(&c)
 	var cc Character
-	cc.XXX_Unmarshal(serialized)
-	fmt.Printf("%#+v\n", cc.KilledMonsters)
-	cc.XXX_Unmarshal(serialized)
-	fmt.Printf("%#+v\n", cc.KilledMonsters)
-	cc.XXX_Unmarshal(serialized)
-	fmt.Printf("%#+v\n", cc.KilledMonsters)
+	err := proto.Unmarshal(serialized, &cc)
+	assert.NoError(t, err)
 }
 
 func BenchmarkCharacter_XXX_Marshal(b *testing.B) {
 	c := testCharacterDataStruct()
-	var buf []byte
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.XXX_Marshal(buf, true)
+		proto.Marshal(&c)
 	}
 }
 
 func BenchmarkCharacter_XXX_Unmarshal(b *testing.B) {
 	c := testCharacterDataStructRandomKilledMonsters(1000)
-	var buf []byte
-	serialized, _ := c.XXX_Marshal(buf, true)
+	serialized, _ := proto.Marshal(&c)
 	var cc Character
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cc.XXX_Unmarshal(serialized)
+		proto.Unmarshal(serialized, &cc)
 	}
 }
 
