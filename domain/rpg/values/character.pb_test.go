@@ -3,7 +3,10 @@ package character
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -60,17 +63,29 @@ func testCharacterDataStructRandomKilledMonsters(n int) Character {
 	return c
 }
 
-func TestCharacter_Marshal(t *testing.T) {
-	c := testCharacterDataStruct()
-	fmt.Println(c)
-	serialized, err := proto.Marshal(&c)
+func TestCharacter_CompressWithProtoBuf(t *testing.T) {
+	c := testCharacterDataStructRandomKilledMonsters(1000)
+	serialized, err := c.CompressWithProtoBuf(false)
 	assert.NoError(t, err)
-	cc := new(Character)
-	err = proto.Unmarshal(serialized, cc)
+	assert.True(t, len(serialized) > 100)
+	gzipSerialized, err := c.CompressWithProtoBuf(true)
+	assert.NoError(t, err)
+	assert.True(t, len(gzipSerialized) > 100)
+	assert.True(t, len(serialized) > len(gzipSerialized), "gzipped bytes should be smaller")
+
+	const protoVer = "3"
+	fileName := "./testdata/protobuf_test_data_protover" + protoVer + "_" + runtime.Version()
+	err = ioutil.WriteFile(fileName, serialized, 0666)
+	assert.NoError(t, err)
+	fmt.Printf("sizeof protobuf binary: %d\n", len(serialized))
+
+	gzipFileName := fileName + ".gz"
+	fmt.Printf("sizeof protobuf binary gzip: %d\n", len(gzipSerialized))
+	err = ioutil.WriteFile(gzipFileName, gzipSerialized, 0666)
 	assert.NoError(t, err)
 }
 
-func TestCharacter_XXX_Unmarshal(t *testing.T) {
+func TestDecompressWithProtoBuf(t *testing.T) {
 	c := testCharacterDataStructRandomKilledMonsters(10)
 	serialized, _ := proto.Marshal(&c)
 	var cc Character
@@ -78,7 +93,41 @@ func TestCharacter_XXX_Unmarshal(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func BenchmarkCharacter_XXX_Marshal(b *testing.B) {
+func TestCharacter_CompressWithGob(t *testing.T) {
+	c := testCharacterDataStructRandomKilledMonsters(1000)
+	gobSerialized, err := c.CompressWithGob(false)
+	assert.NoError(t, err)
+	fileName := "./testdata/gob_test_data_" + runtime.Version()
+	err = ioutil.WriteFile(fileName, gobSerialized, 0666)
+	assert.NoError(t, err)
+	fmt.Printf("sizeof gob binary: %d\n", len(gobSerialized))
+
+	gobGzSerialized, err := c.CompressWithGob(true)
+	fileName = "./testdata/gob_test_data_" + runtime.Version() + ".gz"
+	err = ioutil.WriteFile(fileName, gobGzSerialized, 0666)
+	assert.NoError(t, err)
+	fmt.Printf("sizeof gob binary gzipped: %d\n", len(gobGzSerialized))
+}
+
+func TestDecompressWithGob(t *testing.T) {
+	const fileNameCommon = "./testdata/gob_test_data_go"
+	for _, v := range []string{"1.7.6", "1.11.1", "1.12.6"} {
+		buf, err := os.OpenFile(fileNameCommon+v, os.O_RDONLY, 0666)
+		data, err := ioutil.ReadAll(buf)
+		assert.NoError(t, err)
+		c, err := DecompressWithGob(data, false)
+		assert.NoError(t, err)
+		assert.True(t, c.Id > 0)
+	}
+}
+
+type benchmarkCase struct {
+	name string
+	data Character
+	gzip bool
+}
+
+func BenchmarkCharacter_proto_Marshal(b *testing.B) {
 	c := testCharacterDataStruct()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -86,8 +135,8 @@ func BenchmarkCharacter_XXX_Marshal(b *testing.B) {
 	}
 }
 
-func BenchmarkCharacter_XXX_Unmarshal(b *testing.B) {
-	c := testCharacterDataStructRandomKilledMonsters(1000)
+func BenchmarkCharacter_proto_Unmarshal(b *testing.B) {
+	c := testCharacterDataStruct()
 	serialized, _ := proto.Marshal(&c)
 	var cc Character
 	b.ResetTimer()
@@ -96,8 +145,25 @@ func BenchmarkCharacter_XXX_Unmarshal(b *testing.B) {
 	}
 }
 
+func BenchmarkCharacter_CompressWithProtoBuf(b *testing.B) {
+	c := testCharacterDataStruct()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c.CompressWithProtoBuf(false)
+	}
+}
+
+func BenchmarkDecompressWithProtoBuf(b *testing.B) {
+	c := testCharacterDataStruct()
+	data, _ := c.CompressWithProtoBuf(false)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		DecompressWithProtoBuf(data, false)
+	}
+}
+
 func BenchmarkCharacter_GobEncode(b *testing.B) {
-	c := testCharacterDataStructRandomKilledMonsters(1000)
+	c := testCharacterDataStruct()
 	buf := bytes.NewBuffer([]byte{})
 	encoder := gob.NewEncoder(buf)
 	b.ResetTimer()
@@ -107,7 +173,7 @@ func BenchmarkCharacter_GobEncode(b *testing.B) {
 }
 
 func BenchmarkCharacter_GobDecode(b *testing.B) {
-	c := testCharacterDataStructRandomKilledMonsters(1000)
+	c := testCharacterDataStruct()
 	buf := bytes.NewBuffer([]byte{})
 	encoder := gob.NewEncoder(buf)
 	encoder.Encode(&c)
@@ -116,5 +182,36 @@ func BenchmarkCharacter_GobDecode(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		decoder.Decode(&cc)
+	}
+}
+
+func BenchmarkCharacter_CompressWithGob(b *testing.B) {
+	benchmarks := []benchmarkCase{
+		{"gzip_on", testCharacterDataStruct(), true},
+		{"gzip_off", testCharacterDataStruct(), false},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				bm.data.CompressWithGob(bm.gzip)
+			}
+		})
+	}
+	b.ResetTimer()
+}
+
+func BenchmarkDecompressWithGob(b *testing.B) {
+	benchmarks := []benchmarkCase{
+		{"gzip_on", testCharacterDataStruct(), true},
+		{"gzip_off", testCharacterDataStruct(), false},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			d, _ := bm.data.CompressWithGob(bm.gzip)
+			for i := 0; i < b.N; i++ {
+				DecompressWithGob(d, bm.gzip)
+			}
+		})
 	}
 }

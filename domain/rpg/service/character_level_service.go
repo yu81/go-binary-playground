@@ -1,33 +1,29 @@
 package service
 
-import character "github.com/yu81/go-binary-playground/domain/rpg/values"
+import (
+	"math/rand"
+	"sync"
 
-func AddStrength(c character.Character, v int) character.Character {
-	c.Strength = c.GetStrength() + int64(v)
-	return c
+	character "github.com/yu81/go-binary-playground/domain/rpg/values"
+)
+
+type CharacterLevelService struct {
+	mu sync.RWMutex
 }
 
-func AddAgility(c character.Character, v int) character.Character {
-	c.Agility = c.GetAgility() + int64(v)
-	return c
-}
+func (c *CharacterLevelService) LevelUp(character *character.Character) *character.Character {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	character.AddStrength(rand.Intn(10))
+	vitality := rand.Intn(10)
+	character.AddVitality(vitality)
+	character.AddAgility(rand.Intn(10))
+	character.AddDexterity(rand.Intn(10))
+	intelligence := rand.Intn(10)
+	character.AddIntelligence(intelligence)
+	character.AddLuck(rand.Intn(10))
+	character.AddHp(int(float64(vitality) * 1.2))
+	character.AddMp(int(float64(intelligence) * 1.2))
 
-func AddDexterity(c character.Character, v int) character.Character {
-	c.Dexterity = c.GetDexterity() + int64(v)
-	return c
-}
-
-func AddIntelligence(c character.Character, v int) character.Character {
-	c.Intelligence = c.GetIntelligence() + int64(v)
-	return c
-}
-
-func AddLuck(c character.Character, v int) character.Character {
-	c.Luck = c.GetLuck() + int64(v)
-	return c
-}
-
-func AddVitality(c character.Character, v int) character.Character {
-	c.Vitality = c.GetVitality() + int64(v)
-	return c
+	return character
 }

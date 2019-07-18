@@ -107,7 +107,7 @@ func (m *Character) CompressWithProtoBuf(gzip bool) ([]byte, error) {
 		return nil, err
 	}
 	defer gzipWriter.Close()
-	if err := gzipWriter.Flush();err != nil {
+	if err := gzipWriter.Flush(); err != nil {
 		return nil, err
 	}
 	return gzipBuffer.Bytes(), nil
