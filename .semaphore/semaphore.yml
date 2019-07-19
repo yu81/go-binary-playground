@@ -13,8 +13,7 @@ blocks:
         - name: Run Go
           commands:
             - checkout
-            - sem-version go 1.12
-            - go get -d github.com/yu81/go-binary-playground
-            - go test -v -bench=. -benchmem ./...
             - sem-version go 1.11
+            - go test -v -bench=. -benchmem ./...
+            - sem-version go 1.12
             - go test -v -bench=. -benchmem ./...
