@@ -12,8 +12,9 @@ blocks:
       jobs:
         - name: Run Go
           commands:
-            - go version
+            - checkout
+            - sem-version go 1.12
+            - go get -d github.com/yu81/go-binary-playground
             - go test -v -bench=. -benchmem ./...
-            # Uncomment the following line to pull your code,
-            # then proceed by adding your custom commands:
-            #- checkout
+            - sem-version go 1.11
+            - go test -v -bench=. -benchmem ./...
