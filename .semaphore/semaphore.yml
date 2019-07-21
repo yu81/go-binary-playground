@@ -14,9 +14,19 @@ blocks:
           commands:
             - checkout
             - sem-version go 1.11
-            - go test -v -cover -bench=. -benchmem ./...
+            - go test -v -cover ./...
         - name: Run Go 1.12
           commands:
             - checkout
             - sem-version go 1.12
-            - go test -v -cover -bench=. -benchmem ./...
+            - go test -v -cover ./...
+        - name: Run Go 1.11 bench
+          commands:
+            - checkout
+            - sem-version go 1.11
+            - go test -v -cover -bench=. -benchmem ./... -run "Benchmark*"
+        - name: Run Go 1.12 bench
+          commands:
+            - checkout
+            - sem-version go 1.12
+            - go test -v -cover -bench=. -benchmem ./... -run "Benchmark*"
