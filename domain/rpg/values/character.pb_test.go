@@ -2,6 +2,7 @@ package character
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -9,8 +10,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-
-	"encoding/gob"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"

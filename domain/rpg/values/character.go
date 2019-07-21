@@ -2,10 +2,11 @@ package character
 
 import (
 	"bytes"
-	gz "compress/gzip"
 	"encoding/gob"
 
 	"github.com/golang/protobuf/proto"
+
+	libgzip "github.com/yu81/go-binary-playground/utility/compress/gzip"
 )
 
 func (m *Character) AddStrength(v int) *Character {
@@ -58,19 +59,7 @@ func (m *Character) CompressWithGob(gzip bool) ([]byte, error) {
 	if !gzip {
 		return buf.Bytes(), nil
 	}
-	return gzipDeflate(buf.Bytes())
-}
-
-func gzipDeflate(v []byte) ([]byte, error) {
-	gzipBuffer := bytes.NewBuffer([]byte{})
-	gzipBuffer.Grow(len(v) / 10)
-	gzipWriter, _ := gz.NewWriterLevel(gzipBuffer, 7)
-	defer gzipWriter.Close()
-	if _, err := gzipWriter.Write(v); err != nil {
-		return nil, err
-	}
-	gzipWriter.Flush()
-	return gzipBuffer.Bytes(), nil
+	return libgzip.Deflate(buf.Bytes(), 7)
 }
 
 func DecompressWithGob(v []byte, gzip bool) (*Character, error) {
@@ -81,7 +70,7 @@ func DecompressWithGob(v []byte, gzip bool) (*Character, error) {
 		}
 		return &cc, nil
 	}
-	decompressed, err := gzipInflate(v)
+	decompressed, err := libgzip.Inflate(v)
 	if err != nil {
 		return nil, err
 	}
@@ -92,18 +81,6 @@ func DecompressWithGob(v []byte, gzip bool) (*Character, error) {
 	return &cc, nil
 }
 
-func gzipInflate(v []byte) ([]byte, error) {
-	gzDecoder, err := gz.NewReader(bytes.NewReader(v))
-	if err != nil {
-		return nil, err
-	}
-	var decompressed []byte
-	if _, err := gzDecoder.Read(decompressed); err != nil {
-		return nil, err
-	}
-	return decompressed, nil
-}
-
 func (m *Character) CompressWithProtoBuf(gzip bool) ([]byte, error) {
 	encoded, err := proto.Marshal(m)
 	if err != nil {
@@ -112,17 +89,7 @@ func (m *Character) CompressWithProtoBuf(gzip bool) ([]byte, error) {
 	if !gzip {
 		return encoded, nil
 	}
-	gzipBuffer := bytes.NewBuffer([]byte{})
-	gzipBuffer.Grow(len(encoded) / 10)
-	gzipWriter := gz.NewWriter(gzipBuffer)
-	if _, err := gzipWriter.Write(encoded); err != nil {
-		return nil, err
-	}
-	defer gzipWriter.Close()
-	if err := gzipWriter.Flush(); err != nil {
-		return nil, err
-	}
-	return gzipBuffer.Bytes(), nil
+	return libgzip.Deflate(encoded, 7)
 }
 
 func DecompressWithProtoBuf(v []byte, gzip bool) (*Character, error) {
@@ -133,17 +100,12 @@ func DecompressWithProtoBuf(v []byte, gzip bool) (*Character, error) {
 		}
 		return &cc, nil
 	}
-	gzDecoder, err := gz.NewReader(bytes.NewReader(v))
+	inflated, err := libgzip.Inflate(v)
 	if err != nil {
 		return nil, err
 	}
-	defer gzDecoder.Close()
-	var decompressed []byte
-	if _, err := gzDecoder.Read(decompressed); err != nil {
-		return nil, err
-	}
 	cc := Character{}
-	if err := proto.Unmarshal(v, &cc); err != nil {
+	if err := proto.Unmarshal(inflated, &cc); err != nil {
 		return nil, err
 	}
 	return &cc, nil
