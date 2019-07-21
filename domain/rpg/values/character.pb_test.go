@@ -87,9 +87,15 @@ func TestCharacter_CompressWithProtoBuf(t *testing.T) {
 func TestDecompressWithProtoBuf(t *testing.T) {
 	c := testCharacterDataStructRandomKilledMonsters(10)
 	serialized, _ := proto.Marshal(&c)
+	assert.Equal(t, 154, len(serialized))
 	var cc Character
 	err := proto.Unmarshal(serialized, &cc)
 	assert.NoError(t, err)
+	serialized2, err := c.CompressWithProtoBuf(true)
+	assert.NoError(t, err)
+	decompressedCharacter, err := DecompressWithProtoBuf(serialized2, true)
+	assert.NoError(t, err)
+	assert.Len(t, decompressedCharacter.KilledMonsters, 10)
 }
 
 func TestCharacter_CompressWithGob(t *testing.T) {
@@ -117,6 +123,7 @@ func TestDecompressWithGob(t *testing.T) {
 		c, err := DecompressWithGob(data, false)
 		assert.NoError(t, err)
 		assert.True(t, c.Id > 0)
+		assert.True(t, len(c.KilledMonsters) > 1)
 	}
 }
 
