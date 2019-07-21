@@ -7,7 +7,7 @@ agent:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: Golang example
+  - name: tests and benchmarks
     task:
       jobs:
         - name: Run Go 1.11
