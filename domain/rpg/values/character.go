@@ -58,11 +58,15 @@ func (m *Character) CompressWithGob(gzip bool) ([]byte, error) {
 	if !gzip {
 		return buf.Bytes(), nil
 	}
+	return gzipDeflate(buf.Bytes())
+}
+
+func gzipDeflate(v []byte) ([]byte, error) {
 	gzipBuffer := bytes.NewBuffer([]byte{})
-	gzipBuffer.Grow(buf.Len() / 10)
+	gzipBuffer.Grow(len(v) / 10)
 	gzipWriter, _ := gz.NewWriterLevel(gzipBuffer, 7)
 	defer gzipWriter.Close()
-	if _, err := gzipWriter.Write(buf.Bytes()); err != nil {
+	if _, err := gzipWriter.Write(v); err != nil {
 		return nil, err
 	}
 	gzipWriter.Flush()
@@ -77,6 +81,18 @@ func DecompressWithGob(v []byte, gzip bool) (*Character, error) {
 		}
 		return &cc, nil
 	}
+	decompressed, err := gzipInflate(v)
+	if err != nil {
+		return nil, err
+	}
+	cc := Character{}
+	if err := gob.NewDecoder(bytes.NewReader(decompressed)).Decode(&cc); err != nil {
+		return nil, err
+	}
+	return &cc, nil
+}
+
+func gzipInflate(v []byte) ([]byte, error) {
 	gzDecoder, err := gz.NewReader(bytes.NewReader(v))
 	if err != nil {
 		return nil, err
@@ -85,11 +101,7 @@ func DecompressWithGob(v []byte, gzip bool) (*Character, error) {
 	if _, err := gzDecoder.Read(decompressed); err != nil {
 		return nil, err
 	}
-	cc := Character{}
-	if err := gob.NewDecoder(bytes.NewReader(decompressed)).Decode(&cc); err != nil {
-		return nil, err
-	}
-	return &cc, nil
+	return decompressed, nil
 }
 
 func (m *Character) CompressWithProtoBuf(gzip bool) ([]byte, error) {
