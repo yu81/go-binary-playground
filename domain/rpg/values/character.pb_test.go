@@ -87,7 +87,8 @@ func TestCharacter_CompressWithProtoBuf(t *testing.T) {
 func TestDecompressWithProtoBuf(t *testing.T) {
 	c := testCharacterDataStructRandomKilledMonsters(10)
 	serialized, _ := proto.Marshal(&c)
-	assert.Equal(t, 154, len(serialized))
+	fmt.Printf("TestDecompressWithProtoBuf serialized length: %d\n", len(serialized))
+	assert.True(t, 150 < len(serialized) && 160 > len(serialized))
 	var cc Character
 	err := proto.Unmarshal(serialized, &cc)
 	assert.NoError(t, err)

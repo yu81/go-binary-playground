@@ -18,13 +18,16 @@ func testByteSlice(l int) []byte {
 func TestDeflateAndInflate(t *testing.T) {
 	testCases := [][]byte{
 		{0, 255, 254, 222, 143, 234, 200},
+		testByteSlice(1024),
 	}
-	compressed, err := Deflate(testCases[0], 7)
-	assert.NoError(t, err)
+	for _, c := range testCases {
+		compressed, err := Deflate(c, 7)
+		assert.NoError(t, err)
 
-	decompressed, err := Inflate(compressed)
-	assert.NoError(t, err)
-	assert.True(t, reflect.DeepEqual(testCases[0], decompressed))
+		decompressed, err := Inflate(compressed)
+		assert.NoError(t, err)
+		assert.True(t, reflect.DeepEqual(c, decompressed))
+	}
 }
 
 func BenchmarkDeflate(b *testing.B) {
