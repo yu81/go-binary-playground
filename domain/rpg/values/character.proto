@@ -1,0 +1,32 @@
+syntax = "proto3";
+package character;
+
+message KilledMonsters {
+    int64 id    = 1;
+    int64 count = 2;
+    bool  wanted = 3;
+}
+
+message Character {
+  string name         = 1;
+  int64  id           = 2;
+  int64  strength     = 3;
+  int64  vitality     = 4;
+  int64  agility      = 5;
+  int64  dexterity    = 6;
+  int64  intelligence = 7;
+  int64  luck         = 8;
+  int64  hp           = 9;
+  int64  mp           = 10;
+
+  repeated KilledMonsters killed_monsters = 11;
+}
+
+service CharacterService {
+    rpc AddStrength (Character) returns (Character);
+    rpc AddVitality (Character) returns (Character);
+    rpc AddDexterity (Character) returns (Character);
+    rpc AddAgility (Character) returns (Character);
+    rpc AddIntelligence (Character) returns (Character);
+    rpc AddLuck (Character) returns (Character);
+}
